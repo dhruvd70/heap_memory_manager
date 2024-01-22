@@ -11,6 +11,8 @@ all: $(BUILD_DIRS) test_app
 
 test_app:$(BUILD_DIR)test_app.o ${OBJS}
 	${CC} ${CFLAGS} ${OBJS} -o $(BIN_DIR)test_app 
+	@echo
+	@echo BUILD COMPLETE!!
 
 ${BUILD_DIR}test_app.o:test_app.c
 	${CC} ${CFLAGS} -c test_app.c -o ${BUILD_DIR}test_app.o

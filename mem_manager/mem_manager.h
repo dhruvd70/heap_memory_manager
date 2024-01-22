@@ -25,3 +25,6 @@ typedef struct vm_page_for_families_{
         curr++, count++) {
 
 #define ITERATE_PAGE_FAMILIES_END(vm_page_for_families_ptr, curr) }}
+
+vm_page_family_t* lookup_page_family_by_name(char *struct_name);
+

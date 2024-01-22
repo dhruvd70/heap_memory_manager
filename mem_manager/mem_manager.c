@@ -84,16 +84,43 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
     vm_page_family_curr->struct_size = struct_size;
     // vm_page_family_curr->
 }
+
 void mm_print_registered_page_families(void)
 {
     vm_page_family_t *vm_page_family_curr = NULL;
+    vm_page_for_families_t *vm_page_for_families_curr = NULL;
 
     if(!first_vm_page_for_families) {
         printf("ERROR: No Page Families Registered!\n");
         return;
     }
+    for(vm_page_for_families_curr = first_vm_page_for_families;
+        vm_page_for_families_curr;
+        vm_page_for_families_curr = vm_page_for_families_curr->pNext){
+            ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
+            printf("Page Family: %s, Size: %d\n",vm_page_family_curr->struct_name, vm_page_family_curr->struct_size);
+            }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
+    }
+}
 
-    ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
-       printf("Page Family: %s, Size: %d\n",vm_page_family_curr->struct_name, vm_page_family_curr->struct_size);
-    }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
+vm_page_family_t* lookup_page_family_by_name(char *struct_name)
+{
+    vm_page_family_t *vm_page_family_curr = NULL;
+    vm_page_for_families_t *vm_page_for_families_curr = NULL;
+
+    if(!first_vm_page_for_families) {
+        printf("ERROR: No Page Families Registered!\n");
+        return NULL;
+    }
+    for(vm_page_for_families_curr = first_vm_page_for_families;
+        vm_page_for_families_curr;
+        vm_page_for_families_curr = vm_page_for_families_curr->pNext){
+            ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
+            if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE == 0)) {
+                    return vm_page_family_curr;
+                }
+            }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
+    }
+    printf("ERROR: No Page Families called %s exist.\n",struct_name);
+    return NULL;
 }
