@@ -1,3 +1,5 @@
+#ifndef __MEM_MANAGER__
+#define __MEM_MANAGER__
 
 #include <stdint.h>
 #include <assert.h>
@@ -56,3 +58,4 @@ typedef struct block_meta_data_{
 
 vm_page_family_t* lookup_page_family_by_name(char *struct_name);
 
+#endif
