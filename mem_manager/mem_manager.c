@@ -41,6 +41,22 @@ static void m_map_return_vm_page_to_kernel(void *vm_page, int units)
     }
 }
 
+static void m_map_merge_free_blocks(block_meta_data_t *first, block_meta_data_t *second)
+{
+    assert(first->is_free == MM_TRUE && second->is_free == MM_TRUE);
+
+    first->block_size += sizeof(block_meta_data_t) + second->block_size;
+
+    if(second->p_next_block) {
+        second->p_next_block->p_prev_block = first;
+    }
+}
+
+static inline uint32_t m_map_max_page_allocatable_memory(int units)
+{
+    return (uint32_t)((SYSTEM_PAGE_SIZE * units) - OFFSET_OF(vm_page_t, page_mem));
+}
+
 void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
 {
     vm_page_family_t *vm_page_family_curr = NULL;
@@ -123,4 +139,15 @@ vm_page_family_t* lookup_page_family_by_name(char *struct_name)
     }
     printf("ERROR: No Page Families called %s exist.\n",struct_name);
     return NULL;
+}
+
+vm_bool_e m_map_is_vm_page_empty(vm_page_t *vm_page)
+{
+    if( vm_page->block_meta_data.p_next_block == NULL &&
+        vm_page->block_meta_data.p_prev_block == NULL &&
+        vm_page->block_meta_data.is_free == MM_TRUE) {
+
+        return MM_TRUE;
+    }
+    return MM_FALSE;
 }
