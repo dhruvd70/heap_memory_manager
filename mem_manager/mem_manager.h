@@ -106,4 +106,8 @@ vm_page_family_t* lookup_page_family_by_name(char *struct_name);
 
 vm_bool_e m_map_is_vm_page_empty(vm_page_t *vm_page);
 
+vm_page_t* allocate_vm_page(vm_page_family_t *vm_page_family);
+
+void deallocate_vm_page(vm_page_t *vm_page);
+
 #endif

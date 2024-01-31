@@ -16,6 +16,12 @@ typedef struct student_
     uint32_t marks_eng;
 }student_t;
 
+typedef struct test_
+{
+    int *a;
+    int *b;
+}test_t;
+
 
 int main()
 {
@@ -24,6 +30,8 @@ int main()
     M_MAP_REG_STRUCT(emp_t);
     M_MAP_REG_STRUCT(student_t);
 
-    mm_print_registered_page_families();
+    M_MAP_REG_STRUCT(test_t);
+
+    m_map_print_registered_page_families();
     return 0;
 }
