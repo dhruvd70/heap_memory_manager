@@ -5,6 +5,7 @@ BIN_DIR=bin/
 BUILD_DIRS=dir
 OBJS= 	$(BUILD_DIR)mem_manager.o	\
 		${BUILD_DIR}test_app.o		\
+		${BUILD_DIR}glthread.o		\
 
 
 all: $(BUILD_DIRS) test_app
@@ -19,6 +20,9 @@ ${BUILD_DIR}test_app.o:test_app.c
 
 ${BUILD_DIR}mem_manager.o:mem_manager/mem_manager.c
 	${CC} ${CFLAGS} -c mem_manager/mem_manager.c -o ${BUILD_DIR}mem_manager.o
+
+${BUILD_DIR}glthread.o:gluethread/glthread.c 
+	${CC} ${CFLAGS} -c gluethread/glthread.c -o ${BUILD_DIR}glthread.o
 
 $(BUILD_DIRS):
 	@mkdir -p $(BUILD_DIR)
