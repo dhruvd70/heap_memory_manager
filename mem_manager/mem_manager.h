@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include "../gluethread/glthread.h"
+
 #define MAX_STRUCT_NAME_SIZE        32
 
 typedef enum{
@@ -15,9 +17,13 @@ typedef struct block_meta_data_{
     vm_bool_e is_free;
     uint32_t block_size;
     uint32_t offset;
+	glthread_t priority_list_node;
     struct block_meta_data_ *p_prev_block;
     struct block_meta_data_ *p_next_block;
 }block_meta_data_t;
+
+GLTHREAD_TO_STRUCT(glthread_to_block_meta_data, block_meta_data_t, 
+					priority_list_node, glthread_ptr);
 
 struct vm_page_family_;//forward declaration
 
@@ -33,6 +39,7 @@ typedef struct vm_page_family_{
     char struct_name[MAX_STRUCT_NAME_SIZE];
     uint32_t struct_size;
 	vm_page_t *first_page;
+	glthread_t free_block_priority_list_head;
 }vm_page_family_t;
 
 typedef struct vm_page_for_families_{
@@ -86,7 +93,7 @@ typedef struct vm_page_for_families_{
 #define ITERATE_VM_PAGE_BEGIN(vm_page_family_ptr, curr)						\
 		{																	\
 		curr = vm_page_family_ptr->first_page;								\
-		vm_page_t *pNext = NULL;												\
+		vm_page_t *pNext = NULL;											\
 		for(; curr; curr=pNext) {											\
 			pNext = curr->p_next_page;
 
@@ -109,5 +116,15 @@ vm_bool_e m_map_is_vm_page_empty(vm_page_t *vm_page);
 vm_page_t* allocate_vm_page(vm_page_family_t *vm_page_family);
 
 void deallocate_vm_page(vm_page_t *vm_page);
+
+static inline block_meta_data_t* m_map_get_largest_free_block(vm_page_family_t *vm_page_family)
+{
+	glthread_t *largest_free_block = vm_page_family->free_block_priority_list_head.right;
+
+	if(largest_free_block) {
+		return glthread_to_block_meta_data(largest_free_block);
+	}
+	return NULL;
+}
 
 #endif

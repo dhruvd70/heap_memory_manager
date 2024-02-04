@@ -76,6 +76,8 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
                 struct_name, MAX_STRUCT_NAME_SIZE);
 
         first_vm_page_for_families->vm_page_family[0].struct_size = struct_size;
+        first_vm_page_for_families->vm_page_family[0].first_page = NULL;
+        init_glthread(&first_vm_page_for_families->vm_page_family[0].free_block_priority_list_head);
         return;
     }
 
@@ -98,7 +100,8 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
 
     strncpy(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE);
     vm_page_family_curr->struct_size = struct_size;
-    // vm_page_family_curr->
+    vm_page_family_curr->first_page = NULL;
+    init_glthread(&first_vm_page_for_families->vm_page_family[0].free_block_priority_list_head);
 }
 
 void m_map_print_registered_page_families(void)
@@ -159,6 +162,7 @@ vm_page_t* allocate_vm_page(vm_page_family_t *vm_page_family)
     MARK_VM_PAGE_EMPTY(vm_page);
     vm_page->block_meta_data.block_size = m_map_max_page_allocatable_memory(1);
     vm_page->block_meta_data.offset = OFFSET_OF(vm_page_t, block_meta_data);
+    init_glthread(&vm_page->block_meta_data.priority_list_node);
 
     vm_page->p_next_page = NULL;
     vm_page->p_prev_page = NULL;
@@ -202,4 +206,30 @@ void deallocate_vm_page(vm_page_t *vm_page)
     }
     vm_page->p_prev_page->p_next_page = vm_page->p_next_page;
     m_map_return_vm_page_to_kernel((void *)vm_page, 1);
+}
+
+static int compare_free_block_size(void *_block_meta_data_1, void *_block_meta_data_2)
+{
+    block_meta_data_t *block_meta_data_1 = (block_meta_data_t *)_block_meta_data_1;
+    block_meta_data_t *block_meta_data_2 = (block_meta_data_t *)_block_meta_data_2;
+
+    if(block_meta_data_1->block_size > block_meta_data_2->block_size) {
+        return -1;
+    }
+    else if(block_meta_data_1->block_size < block_meta_data_2->block_size) {
+        return 1;
+    }
+    return 0;
+}
+
+static void m_map_add_free_block_meta_data_to_block_list
+                (vm_page_family_t *vm_page_family, block_meta_data_t *free_block)
+{
+    assert(free_block->is_free == MM_TRUE);
+    glthread_priority_insert(&vm_page_family->free_block_priority_list_head,
+                             &free_block->priority_list_node,
+                             compare_free_block_size,
+                             OFFSET_OF(block_meta_data_t, priority_list_node));
+
+    
 }
