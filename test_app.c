@@ -1,5 +1,7 @@
-#include "custom_lmm.h"
+#include <stdio.h>
+#include <string.h>
 
+#include "custom_lmm.h"
 typedef struct emp_
 {
     char name[32];
@@ -16,22 +18,18 @@ typedef struct student_
     uint32_t marks_eng;
 }student_t;
 
-typedef struct test_
-{
-    int *a;
-    int *b;
-}test_t;
-
-
 int main()
 {
-    m_mamp_init();
-
+    m_map_init();
     M_MAP_REG_STRUCT(emp_t);
     M_MAP_REG_STRUCT(student_t);
 
-    M_MAP_REG_STRUCT(test_t);
-
     m_map_print_registered_page_families();
+    printf("\n\n");
+    for(int i=0;i<50;i++) {
+        printf("%d\n",i);
+        MY_CALLOC(emp_t,1);
+        MY_CALLOC(student_t,1);
+    }
     return 0;
 }

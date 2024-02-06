@@ -8,7 +8,7 @@
 static vm_page_for_families_t *first_vm_page_for_families = NULL;
 static size_t SYSTEM_PAGE_SIZE = 0;
 
-void m_mamp_init(void)
+void m_map_init(void)
 {
     SYSTEM_PAGE_SIZE = getpagesize();
 }
@@ -72,8 +72,7 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
         first_vm_page_for_families =
                     (vm_page_for_families_t *)m_map_get_vm_page_from_kernel(1);
         first_vm_page_for_families->pNext = NULL;
-        strncpy(first_vm_page_for_families->vm_page_family[0].struct_name,
-                struct_name, MAX_STRUCT_NAME_SIZE);
+        strncpy(first_vm_page_for_families->vm_page_family[0].struct_name,struct_name, MAX_STRUCT_NAME_SIZE);
 
         first_vm_page_for_families->vm_page_family[0].struct_size = struct_size;
         first_vm_page_for_families->vm_page_family[0].first_page = NULL;
@@ -135,7 +134,7 @@ vm_page_family_t* lookup_page_family_by_name(char *struct_name)
         vm_page_for_families_curr;
         vm_page_for_families_curr = vm_page_for_families_curr->pNext){
             ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
-            if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE == 0)) {
+                if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE) == 0) {
                     return vm_page_family_curr;
                 }
             }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
@@ -230,6 +229,127 @@ static void m_map_add_free_block_meta_data_to_block_list
                              &free_block->priority_list_node,
                              compare_free_block_size,
                              OFFSET_OF(block_meta_data_t, priority_list_node));
+}
 
+static vm_page_t* m_map_add_new_page_to_family(vm_page_family_t *vm_page_family)
+{
+    vm_page_t *vm_page = allocate_vm_page(vm_page_family);
+
+    if(!vm_page) {
+        return NULL;
+    }
+
+    m_map_add_free_block_meta_data_to_block_list(vm_page_family, &vm_page->block_meta_data);
     
+    return vm_page;
+}
+
+static vm_bool_e m_map_split_free_data_block(vm_page_family_t *vm_page_family, 
+                                             block_meta_data_t *block_meta_data,
+                                             uint32_t size)
+{
+    block_meta_data_t *next_block_meta_data = NULL;
+    assert(block_meta_data->is_free == MM_TRUE);
+
+    if(block_meta_data->block_size < size) {
+        return MM_FALSE;
+    }
+
+    uint32_t remaining_size = block_meta_data->block_size - size;
+
+    block_meta_data->is_free = MM_FALSE;
+    block_meta_data->block_size = size;
+    remove_glthread(&block_meta_data->priority_list_node);
+
+    /*No Splitting Required*/
+    if(!remaining_size) {
+        return MM_TRUE;
+    }
+
+    /*Partial Splitting Required (Fragmentation)*/
+    else if(sizeof(block_meta_data) < remaining_size && 
+            remaining_size < (sizeof(block_meta_data) + vm_page_family->struct_size)) {
+        next_block_meta_data = NEXT_META_BLOCK_BY_SIZE(block_meta_data);
+        next_block_meta_data->is_free = MM_TRUE;
+        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data);
+        next_block_meta_data->offset = block_meta_data->offset +
+                                       block_meta_data->block_size +
+                                       sizeof(block_meta_data_t);
+        init_glthread(&next_block_meta_data->priority_list_node);
+        m_map_add_free_block_meta_data_to_block_list(vm_page_family, next_block_meta_data);
+        m_map_bind_blocks_for_allocation(block_meta_data, next_block_meta_data);
+    }
+
+    else if(remaining_size < sizeof(block_meta_data_t)) {
+        /*do nothing*/
+    }
+
+    /*Full Split, New Meta Block is created*/
+    else {
+        next_block_meta_data = NEXT_META_BLOCK_BY_SIZE(block_meta_data);
+        next_block_meta_data->is_free = MM_TRUE;
+        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data);
+        next_block_meta_data->offset = block_meta_data->offset +
+                                       block_meta_data->block_size +
+                                       sizeof(block_meta_data_t);
+        init_glthread(&next_block_meta_data->priority_list_node);
+        m_map_add_free_block_meta_data_to_block_list(vm_page_family, next_block_meta_data);
+        m_map_bind_blocks_for_allocation(block_meta_data, next_block_meta_data);
+    }
+    return MM_TRUE;
+}
+
+block_meta_data_t* m_map_allocate_free_data_block(vm_page_family_t *vm_page_family, uint32_t req_size)
+{
+    vm_bool_e status = MM_FALSE;
+    vm_page_t *vm_page = NULL;
+    block_meta_data_t *block_meta_data = NULL;
+
+    block_meta_data_t *largest_block_meta_data = m_map_get_largest_free_block(vm_page_family);
+
+    if(!largest_block_meta_data || largest_block_meta_data->block_size < req_size) {
+        /*add new vm page to satisfy the request*/
+        printf("NEW PAGE ALLOCATED\n");
+        vm_page = m_map_add_new_page_to_family(vm_page_family);
+        status = m_map_split_free_data_block(vm_page_family, &vm_page->block_meta_data, req_size);
+
+        if(status) {
+            return &vm_page->block_meta_data;
+        }
+        return NULL;
+    }
+
+    if(largest_block_meta_data) {
+        status = m_map_split_free_data_block(vm_page_family, largest_block_meta_data, req_size);
+    }
+
+    if(status) {
+        return largest_block_meta_data;
+    }
+    return NULL;
+}
+
+void *my_calloc(char *struct_name, int units)
+{
+    // printf("XCALLOC: memory requested for struct -> %s\n",struct_name);
+    vm_page_family_t *page_family = lookup_page_family_by_name(struct_name);
+
+    if(!page_family) {
+        printf("ERROR: Structure %s is not registered with Memory Manager\n", struct_name);
+        return NULL;
+    }
+
+    if((units * page_family->struct_size) > m_map_max_page_allocatable_memory(1)) {
+        printf("ERROR: Memory requested exceeds Page Size\n");
+        return NULL;
+    }
+
+    block_meta_data_t *free_block_meta_data = NULL;
+    free_block_meta_data = m_map_allocate_free_data_block(page_family, (units * page_family->struct_size));
+    
+    if(free_block_meta_data) {
+        memset((char *)free_block_meta_data+1, 0,free_block_meta_data->block_size);
+        return (void *)free_block_meta_data+1;
+    }
+    return NULL;
 }

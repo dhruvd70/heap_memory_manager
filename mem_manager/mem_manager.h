@@ -63,12 +63,13 @@ typedef struct vm_page_for_families_{
         (block_meta_data_t *) ((char *)(block_meta_data_ptr + 1)	\
         + block_meta_data_ptr->block_size)
 
-#define mm_bind_blocks_for_allocation(allocated_meta_block, free_meta_block)    	\
+#define m_map_bind_blocks_for_allocation(allocated_meta_block, free_meta_block)     \
         free_meta_block->p_prev_block = allocated_meta_block;                       \
-        free_meta_block->p_next_block = allocated_meta_block->next_block;           \
+        free_meta_block->p_next_block = allocated_meta_block->p_next_block;         \
         allocated_meta_block->p_next_block = free_meta_block;                       \
-        if (free_meta_block->p_next_block)                                          \
-        free_meta_block->p_next_block->p_prev_block = free_meta_block
+        if (free_meta_block->p_next_block) {                                        \
+        	free_meta_block->p_next_block->p_prev_block = free_meta_block;			\
+		}
 
 #define MARK_VM_PAGE_EMPTY(vm_page_t_ptr)					\
 		vm_page_t_ptr->block_meta_data.p_next_block = NULL;	\
