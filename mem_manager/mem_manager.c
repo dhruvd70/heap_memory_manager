@@ -347,8 +347,8 @@ void *my_calloc(char *struct_name, int units)
     free_block_meta_data = m_map_allocate_free_data_block(page_family, (units * page_family->struct_size));
     
     if(free_block_meta_data) {
-        // memset((char *)free_block_meta_data->data_mem, 0,free_block_meta_data->block_size);
-        return (void *)free_block_meta_data->data_mem;
+        memset((char *)(free_block_meta_data + 1), 0,free_block_meta_data->block_size);
+        return (void *)free_block_meta_data;
     }
     return NULL;
 }

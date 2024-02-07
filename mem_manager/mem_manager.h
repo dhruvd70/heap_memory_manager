@@ -29,7 +29,6 @@ typedef struct block_meta_data_{
 	glthread_t priority_list_node;
     struct block_meta_data_ *p_prev_block;
     struct block_meta_data_ *p_next_block;
-    char data_mem[0];
 }block_meta_data_t;
 
 GLTHREAD_TO_STRUCT(glthread_to_block_meta_data, block_meta_data_t, 
