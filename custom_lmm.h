@@ -11,6 +11,8 @@ void m_map_print_registered_page_families(void);
 
 void* my_calloc(char *struct_name, int units);
 
+void m_map_print_mem_usage(char *struct_name);
+
 #define MY_CALLOC(struct_name, units)       \
         my_calloc(#struct_name, units)
 

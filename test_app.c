@@ -8,28 +8,42 @@ typedef struct emp_
     uint32_t emp_id;
 }emp_t;
 
-typedef struct student_
-{
-    char name[32];
-    uint32_t roll_no;
-    uint32_t marks_phy;
-    uint32_t marks_chem;
-    uint32_t marks_maths;
-    uint32_t marks_eng;
-}student_t;
+typedef struct test_{
+    int var_1;
+    int var_2;
+    int var_3;
+    char arr[20];
+}test_t;
 
 int main()
 {
     m_map_init();
     M_MAP_REG_STRUCT(emp_t);
-    M_MAP_REG_STRUCT(student_t);
-
+    M_MAP_REG_STRUCT(test_t);
     m_map_print_registered_page_families();
-    printf("\n\n");
-    for(int i=0;i<50;i++) {
-        printf("%d\n",i);
-        MY_CALLOC(emp_t,1);
-        MY_CALLOC(student_t,1);
-    }
+
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+    MY_CALLOC(test_t, 1);
+
+    // MY_CALLOC(emp_t, 1);
+    // MY_CALLOC(emp_t, 1);
+    // MY_CALLOC(emp_t, 1);
+    // MY_CALLOC(emp_t, 1);
+    // MY_CALLOC(emp_t, 1);
+    // MY_CALLOC(emp_t, 1);
+
+    m_map_print_mem_usage(0);
     return 0;
 }

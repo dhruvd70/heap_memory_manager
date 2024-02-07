@@ -8,6 +8,15 @@
 
 #define MAX_STRUCT_NAME_SIZE        32
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 typedef enum{
     MM_FALSE,
     MM_TRUE
@@ -48,7 +57,7 @@ typedef struct vm_page_for_families_{
 }vm_page_for_families_t;
 
 #define OFFSET_OF(container_struct, field_name)         \
-        ((size_t) & (((container_struct *) 0)->field_name))
+        ((size_t)&(((container_struct *)0)->field_name))
 
 #define GET_PAGE_FROM_META_BLOCK(block_meta_data_ptr)   \
         ((void *)((char *)block_meta_data_ptr - block_meta_data_ptr->offset))
