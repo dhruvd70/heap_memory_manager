@@ -57,6 +57,28 @@ static inline uint32_t m_map_max_page_allocatable_memory(int units)
     return (uint32_t)((SYSTEM_PAGE_SIZE * units) - OFFSET_OF(vm_page_t, page_mem));
 }
 
+vm_page_family_t* lookup_page_family_by_name(char *struct_name)
+{
+    vm_page_family_t *vm_page_family_curr = NULL;
+    vm_page_for_families_t *vm_page_for_families_curr = NULL;
+
+    if(!first_vm_page_for_families) {
+        printf(ANSI_COLOR_RED"ERROR: No Page Families Registered!\n"ANSI_COLOR_RESET);
+        return NULL;
+    }
+    for(vm_page_for_families_curr = first_vm_page_for_families;
+        vm_page_for_families_curr;
+        vm_page_for_families_curr = vm_page_for_families_curr->pNext){
+            ITERATE_PAGE_FAMILIES_BEGIN(vm_page_for_families_curr, vm_page_family_curr) {
+                if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE) == 0) {
+                    return vm_page_family_curr;
+                }
+            }ITERATE_PAGE_FAMILIES_END(vm_page_for_families_curr, vm_page_family_curr);
+    }
+    // printf(ANSI_COLOR_RED"ERROR: No Page Families called %s exist.\n"ANSI_COLOR_RESET,struct_name);
+    return NULL;
+}
+
 void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
 {
     vm_page_family_t *vm_page_family_curr = NULL;
@@ -69,8 +91,7 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
     }
 
     if(!first_vm_page_for_families) {
-        first_vm_page_for_families =
-                    (vm_page_for_families_t *)m_map_get_vm_page_from_kernel(1);
+        first_vm_page_for_families = (vm_page_for_families_t *)m_map_get_vm_page_from_kernel(1);
         first_vm_page_for_families->pNext = NULL;
         strncpy(first_vm_page_for_families->vm_page_family[0].struct_name,struct_name, MAX_STRUCT_NAME_SIZE);
 
@@ -80,27 +101,29 @@ void m_map_instansiate_new_page_family(char *struct_name, uint32_t struct_size)
         return;
     }
 
+    vm_page_family_curr = lookup_page_family_by_name(struct_name);
+
+    if(vm_page_family_curr) {
+        assert(0);
+    }
+
     uint32_t count = 0;
     ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
-        if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE != 0)) {
-            count ++;
-            continue;
-        }
-        assert(0);
+
+        count ++;
+
     }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
 
     if(count == MAX_FAMILIES_PER_VM_PAGE) {
-        new_vm_page_for_familes =
-                    (vm_page_for_families_t *)m_map_get_vm_page_from_kernel(1);
+        new_vm_page_for_familes = (vm_page_for_families_t *)m_map_get_vm_page_from_kernel(1);
         new_vm_page_for_familes->pNext = first_vm_page_for_families;
         first_vm_page_for_families = new_vm_page_for_familes;
-        vm_page_family_curr = &first_vm_page_for_families->vm_page_family[0];
     }
 
     strncpy(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE);
     vm_page_family_curr->struct_size = struct_size;
     vm_page_family_curr->first_page = NULL;
-    init_glthread(&first_vm_page_for_families->vm_page_family[0].free_block_priority_list_head);
+    init_glthread(&vm_page_family_curr->free_block_priority_list_head);
 }
 
 void m_map_print_registered_page_families(void)
@@ -115,32 +138,10 @@ void m_map_print_registered_page_families(void)
     for(vm_page_for_families_curr = first_vm_page_for_families;
         vm_page_for_families_curr;
         vm_page_for_families_curr = vm_page_for_families_curr->pNext){
-            ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
+            ITERATE_PAGE_FAMILIES_BEGIN(vm_page_for_families_curr, vm_page_family_curr) {
             printf("Page Family: %s, Size: %d\n",vm_page_family_curr->struct_name, vm_page_family_curr->struct_size);
-            }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
+            }ITERATE_PAGE_FAMILIES_END(vm_page_for_families_curr, vm_page_family_curr);
     }
-}
-
-vm_page_family_t* lookup_page_family_by_name(char *struct_name)
-{
-    vm_page_family_t *vm_page_family_curr = NULL;
-    vm_page_for_families_t *vm_page_for_families_curr = NULL;
-
-    if(!first_vm_page_for_families) {
-        printf(ANSI_COLOR_RED"ERROR: No Page Families Registered!\n"ANSI_COLOR_RESET);
-        return NULL;
-    }
-    for(vm_page_for_families_curr = first_vm_page_for_families;
-        vm_page_for_families_curr;
-        vm_page_for_families_curr = vm_page_for_families_curr->pNext){
-            ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
-                if(strncmp(vm_page_family_curr->struct_name, struct_name, MAX_STRUCT_NAME_SIZE) == 0) {
-                    return vm_page_family_curr;
-                }
-            }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
-    }
-    printf(ANSI_COLOR_RED"ERROR: No Page Families called %s exist.\n"ANSI_COLOR_RESET,struct_name);
-    return NULL;
 }
 
 vm_bool_e m_map_is_vm_page_empty(vm_page_t *vm_page)
@@ -221,8 +222,7 @@ static int compare_free_block_size(void *_block_meta_data_1, void *_block_meta_d
     return 0;
 }
 
-static void m_map_add_free_block_meta_data_to_block_list
-                (vm_page_family_t *vm_page_family, block_meta_data_t *free_block)
+static void m_map_add_free_block_meta_data_to_block_list(vm_page_family_t *vm_page_family, block_meta_data_t *free_block)
 {
     assert(free_block->is_free == MM_TRUE);
     glthread_priority_insert(&vm_page_family->free_block_priority_list_head,
@@ -267,11 +267,11 @@ static vm_bool_e m_map_split_free_data_block(vm_page_family_t *vm_page_family,
     }
 
     /*Partial Splitting Required (Fragmentation)*/
-    else if(sizeof(block_meta_data) < remaining_size && 
-            remaining_size < (sizeof(block_meta_data) + vm_page_family->struct_size)) {
+    else if(sizeof(block_meta_data_t) < remaining_size && 
+            remaining_size < (sizeof(block_meta_data_t) + vm_page_family->struct_size)) {
         next_block_meta_data = NEXT_META_BLOCK_BY_SIZE(block_meta_data);
         next_block_meta_data->is_free = MM_TRUE;
-        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data);
+        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data_t);
         next_block_meta_data->offset = block_meta_data->offset +
                                        block_meta_data->block_size +
                                        sizeof(block_meta_data_t);
@@ -288,7 +288,7 @@ static vm_bool_e m_map_split_free_data_block(vm_page_family_t *vm_page_family,
     else {
         next_block_meta_data = NEXT_META_BLOCK_BY_SIZE(block_meta_data);
         next_block_meta_data->is_free = MM_TRUE;
-        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data);
+        next_block_meta_data->block_size = remaining_size - sizeof(block_meta_data_t);
         next_block_meta_data->offset = block_meta_data->offset +
                                        block_meta_data->block_size +
                                        sizeof(block_meta_data_t);
@@ -347,8 +347,8 @@ void *my_calloc(char *struct_name, int units)
     free_block_meta_data = m_map_allocate_free_data_block(page_family, (units * page_family->struct_size));
     
     if(free_block_meta_data) {
-        memset((char *)free_block_meta_data+1, 0,free_block_meta_data->block_size);
-        return (void *)free_block_meta_data+1;
+        // memset((char *)free_block_meta_data->data_mem, 0,free_block_meta_data->block_size);
+        return (void *)free_block_meta_data->data_mem;
     }
     return NULL;
 }
@@ -363,7 +363,7 @@ void m_map_print_vm_page_details(vm_page_t *vm_page)
 
     ITERATE_BLOCKS_IN_VM_PAGE_BEGIN(vm_page, curr) {
         printf("\t\t%-14p Block %-3u %s    Block Size = %-6u  Offset = %-6u  Prev = %-14p   Next = %-14p\n",
-                                                            curr, i++, curr->is_free ? "F R E E  " : "ALLOCATED",
+                                                            curr, i++, curr->is_free ? " F R E E " : "ALLOCATED",
                                                             curr->block_size, curr->offset,
                                                             curr->p_prev_block, curr->p_next_block);
     }ITERATE_BLOCKS_IN_VM_PAGE_END(vm_page, curr);

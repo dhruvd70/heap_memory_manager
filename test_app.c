@@ -9,40 +9,28 @@ typedef struct emp_
 }emp_t;
 
 typedef struct test_{
-    int var_1;
-    int var_2;
-    int var_3;
-    char arr[20];
+    char arr[56];
 }test_t;
 
 int main()
 {
     m_map_init();
-    M_MAP_REG_STRUCT(emp_t);
     M_MAP_REG_STRUCT(test_t);
+    M_MAP_REG_STRUCT(emp_t);
     m_map_print_registered_page_families();
 
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
-    MY_CALLOC(test_t, 1);
+    // test_t *temp = MY_CALLOC(test_t, 1);
 
-    // MY_CALLOC(emp_t, 1);
-    // MY_CALLOC(emp_t, 1);
-    // MY_CALLOC(emp_t, 1);
-    // MY_CALLOC(emp_t, 1);
-    // MY_CALLOC(emp_t, 1);
-    // MY_CALLOC(emp_t, 1);
+    for (int i=0;i<50;i++) {
+        MY_CALLOC(emp_t, 1);
+    } 
+
+    MY_CALLOC(emp_t, 1);
+    MY_CALLOC(emp_t, 1);
+    MY_CALLOC(emp_t, 1);
+    MY_CALLOC(emp_t, 1);
+    MY_CALLOC(emp_t, 1);
+    MY_CALLOC(emp_t, 1);
 
     m_map_print_mem_usage(0);
     return 0;

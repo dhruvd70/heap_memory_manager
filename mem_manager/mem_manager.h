@@ -29,6 +29,7 @@ typedef struct block_meta_data_{
 	glthread_t priority_list_node;
     struct block_meta_data_ *p_prev_block;
     struct block_meta_data_ *p_next_block;
+    char data_mem[0];
 }block_meta_data_t;
 
 GLTHREAD_TO_STRUCT(glthread_to_block_meta_data, block_meta_data_t, 
@@ -69,8 +70,7 @@ typedef struct vm_page_for_families_{
         (block_meta_data_ptr->p_prev_block)
 
 #define NEXT_META_BLOCK_BY_SIZE(block_meta_data_ptr)    			\
-        (block_meta_data_t *) ((char *)(block_meta_data_ptr + 1)	\
-        + block_meta_data_ptr->block_size)
+        (block_meta_data_t *) ((char *)(block_meta_data_ptr + 1) + block_meta_data_ptr->block_size)
 
 #define m_map_bind_blocks_for_allocation(allocated_meta_block, free_meta_block)     \
         free_meta_block->p_prev_block = allocated_meta_block;                       \
@@ -92,10 +92,10 @@ typedef struct vm_page_for_families_{
 /*Iterative Macro to traverse Page Families*/
 #define ITERATE_PAGE_FAMILIES_BEGIN(vm_page_for_families_ptr, curr)         \
         {                                                                   \
-        uint32_t count = 0;                                                 \
+        uint32_t _count = 0;                                                 \
         for(curr = (vm_page_family_t*)&vm_page_for_families_ptr->vm_page_family[0];    \
-        curr->struct_size && count < MAX_FAMILIES_PER_VM_PAGE;              \
-        curr++, count++) {
+        curr->struct_size && _count < MAX_FAMILIES_PER_VM_PAGE;              \
+        curr++, _count++) {
 
 #define ITERATE_PAGE_FAMILIES_END(vm_page_for_families_ptr, curr) }}
 
