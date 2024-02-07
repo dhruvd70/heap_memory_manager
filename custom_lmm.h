@@ -13,6 +13,8 @@ void* my_calloc(char *struct_name, int units);
 
 void m_map_print_mem_usage(char *struct_name);
 
+void m_map_print_block_usage(void);
+
 #define MY_CALLOC(struct_name, units)       \
         my_calloc(#struct_name, units)
 

@@ -358,11 +358,11 @@ void m_map_print_vm_page_details(vm_page_t *vm_page)
     printf("\tNext = %p, Prev = %p\n",vm_page->p_next_page, vm_page->p_prev_page);
     printf(ANSI_COLOR_MAGENTA"\tPage Family = %s\n"ANSI_COLOR_RESET, vm_page->p_page_family->struct_name);
 
-    uint32_t i = 0;
+    uint32_t i = 1;
     block_meta_data_t *curr;
 
     ITERATE_BLOCKS_IN_VM_PAGE_BEGIN(vm_page, curr) {
-        printf("\t\t%-14p Block %-3u %s    Block Size = %-6u  Offset = %-6u  Prev = %-14p   Next = %-14p\n",
+        printf("\t\t%-14p | Block %-3u| %s | Block Size = %-6u | Offset = %-6u | Prev = %-14p | Next = %-14p\n",
                                                             curr, i++, curr->is_free ? " F R E E " : "ALLOCATED",
                                                             curr->block_size, curr->offset,
                                                             curr->p_prev_block, curr->p_next_block);
@@ -400,5 +400,44 @@ void m_map_print_mem_usage(char *struct_name)
         printf("\n");
     }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr);
 
-    printf(ANSI_COLOR_MAGENTA"No. of VM Pages in Use : %u (Total Memory Used : %lu Bytes)\n"ANSI_COLOR_RESET,num_vm_pages_from_kernel, SYSTEM_PAGE_SIZE * num_vm_pages_from_kernel);
+    printf(ANSI_COLOR_RED"No. of VM Pages in Use : %u (Total Memory Used : %lu Bytes)\n"ANSI_COLOR_RESET,num_vm_pages_from_kernel, SYSTEM_PAGE_SIZE * num_vm_pages_from_kernel);
+}
+
+void m_map_print_block_usage(void)
+{
+    vm_page_t *vm_page_curr;
+    vm_page_family_t * vm_page_family_curr;
+    block_meta_data_t *block_meta_data_curr;
+
+    uint32_t total_block_count, free_block_count, occupied_block_count;
+
+    uint32_t app_mem_usage;
+    printf("\n");
+    ITERATE_PAGE_FAMILIES_BEGIN(first_vm_page_for_families, vm_page_family_curr) {
+        total_block_count = 0;
+        free_block_count  = 0;
+        occupied_block_count = 0;
+        app_mem_usage = 0;
+
+        ITERATE_VM_PAGE_BEGIN(vm_page_family_curr, vm_page_curr) {
+
+            ITERATE_BLOCKS_IN_VM_PAGE_BEGIN(vm_page_curr, block_meta_data_curr) {
+                
+                total_block_count++;
+                if(block_meta_data_curr->is_free == MM_TRUE) {
+                    free_block_count ++;
+                }
+                else {
+                    app_mem_usage += block_meta_data_curr->block_size + sizeof(block_meta_data_t);
+                    occupied_block_count++;
+                }
+            }ITERATE_BLOCKS_IN_VM_PAGE_END(vm_page_curr, block_meta_data_curr)
+        }ITERATE_VM_PAGE_END(vm_page_family_curr, vm_page_curr)
+
+        printf("%-20s TBC = %-4u    FBC = %-4u    OBC = %-4u    App_Mem_Usage = %u\n", vm_page_family_curr->struct_name,
+                                                                                        total_block_count,
+                                                                                        free_block_count,
+                                                                                        occupied_block_count,
+                                                                                        app_mem_usage);
+    }ITERATE_PAGE_FAMILIES_END(first_vm_page_for_families, vm_page_family_curr)
 }
