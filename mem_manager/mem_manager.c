@@ -31,9 +31,9 @@ static void* m_map_get_vm_page_from_kernel(int units)
 }
 
 /*Funtion to Return VM Page to Kernel*/
-static void m_map_return_vm_page_to_kernel(void *vm_page, int units)
+static void m_map_return_vm_page_to_kernel(void *vm_page)
 {
-    if(munmap(vm_page, (units * SYSTEM_PAGE_SIZE))) {
+    if(munmap(vm_page, SYSTEM_PAGE_SIZE)) {
         printf(ANSI_COLOR_RED"ERROR: Could Not Unmap VM Page to Kernel\n"ANSI_COLOR_RESET);
     }
     else{
@@ -197,7 +197,7 @@ void deallocate_vm_page(vm_page_t *vm_page)
         vm_page->p_next_page = NULL;
         vm_page->p_prev_page = NULL;
 
-        m_map_return_vm_page_to_kernel((void *)vm_page, 1);
+        m_map_return_vm_page_to_kernel((void *)vm_page);
         return;
     }
 
@@ -205,7 +205,7 @@ void deallocate_vm_page(vm_page_t *vm_page)
         vm_page->p_next_page->p_prev_page = vm_page->p_prev_page;
     }
     vm_page->p_prev_page->p_next_page = vm_page->p_next_page;
-    m_map_return_vm_page_to_kernel((void *)vm_page, 1);
+    m_map_return_vm_page_to_kernel((void *)vm_page);
 }
 
 static int compare_free_block_size(void *_block_meta_data_1, void *_block_meta_data_2)
@@ -348,9 +348,76 @@ void *my_calloc(char *struct_name, int units)
     
     if(free_block_meta_data) {
         memset((char *)(free_block_meta_data + 1), 0,free_block_meta_data->block_size);
-        return (void *)free_block_meta_data;
+        return (void *)(free_block_meta_data + 1);
     }
     return NULL;
+}
+
+static int m_map_get_hard_internal_frag_mem_size(block_meta_data_t *first, block_meta_data_t *second)
+{
+    block_meta_data_t *next = NEXT_META_BLOCK_BY_SIZE(first);
+
+    return (int)(unsigned long)second - (unsigned long)(next);
+}
+
+static block_meta_data_t *m_map_free_block(block_meta_data_t *block_to_free)
+{
+    block_meta_data_t *block_to_return = NULL;
+
+    assert(block_to_free->is_free == MM_FALSE);
+    vm_page_t *host_page = GET_PAGE_FROM_META_BLOCK(block_to_free);
+
+    vm_page_family_t *vm_page_family = host_page->p_page_family;
+
+    block_to_return = block_to_free;
+    block_to_free->is_free = MM_TRUE;
+
+    block_meta_data_t *next_block = NEXT_META_BLOCK(block_to_free);
+
+    if(next_block) {
+        // block to be freed is not the last block in current page i.e next_block != NULL
+        block_to_free->block_size += m_map_get_hard_internal_frag_mem_size(block_to_free, next_block);
+    }
+    else{
+        //block to be freed is the last block in current page i.e next_block == NULL
+        char *end_addr_of_page = (char *)((char *)host_page + SYSTEM_PAGE_SIZE);
+        char *end_addr_of_free_data_block = (char *)(block_to_free + 1) + block_to_free->block_size;
+
+        int fragmented_mem = (int) (unsigned long)end_addr_of_page - (unsigned long)end_addr_of_free_data_block;
+
+        block_to_free->block_size += fragmented_mem;
+    }
+
+    //perform merging of free blocks if possible
+    if(next_block && next_block->is_free == MM_TRUE) {
+        m_map_merge_free_blocks(block_to_free, next_block);
+        block_to_return = block_to_free;
+    }
+
+    // check if previous block is free
+    block_meta_data_t *prev_block = PREV_META_BLOCK(block_to_free);
+    if(prev_block && prev_block->is_free == MM_TRUE) {
+        m_map_merge_free_blocks(prev_block, block_to_free);
+        block_to_return = prev_block;
+    }
+
+    if (m_map_is_vm_page_empty(host_page)) {
+        m_map_return_vm_page_to_kernel(host_page);
+        return NULL;
+    }
+    
+    m_map_add_free_block_meta_data_to_block_list(host_page->p_page_family, block_to_return);
+
+    return block_to_return;
+}
+
+void my_free(void *app_data)
+{
+    // block_meta_data_t *block_meta_data = (block_meta_data_t *)((char *)app_data - sizeof(block_meta_data_t));
+    block_meta_data_t *block_meta_data = (block_meta_data_t *)((char *)app_data - sizeof(block_meta_data_t));
+    printf("my free called\n");
+    assert(block_meta_data->is_free == MM_FALSE);
+    m_map_free_block(block_meta_data);
 }
 
 void m_map_print_vm_page_details(vm_page_t *vm_page)

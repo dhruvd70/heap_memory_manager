@@ -29,3 +29,9 @@ $(BUILD_DIRS):
 	@mkdir -p $(BIN_DIR)
 clean:
 	rm -rf build bin
+
+debug:
+	gdb ./bin/test_app
+
+run:
+	./bin/test_app

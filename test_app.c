@@ -25,9 +25,27 @@ int main()
         MY_CALLOC(test_t, 1);
     } 
 
-    MY_CALLOC(emp_t, 1);
-    MY_CALLOC(emp_t, 1);
-    MY_CALLOC(emp_t, 1);
+    emp_t *emp1 = MY_CALLOC(emp_t, 1);
+    emp_t *emp2 = MY_CALLOC(emp_t, 1);
+    emp_t *emp3 = MY_CALLOC(emp_t, 1);
+
+    m_map_print_mem_usage(0);
+    m_map_print_block_usage();
+
+    printf("/********SCENARIO 1********/\n");
+    MY_FREE(emp1);
+
+    m_map_print_mem_usage(0);
+    m_map_print_block_usage();
+
+    printf("/********SCENARIO 2********/\n");
+    MY_FREE(emp2);
+
+    m_map_print_mem_usage(0);
+    m_map_print_block_usage();
+
+    printf("/********SCENARIO 3********/\n");
+    MY_FREE(emp3);
 
     m_map_print_mem_usage(0);
     m_map_print_block_usage();
