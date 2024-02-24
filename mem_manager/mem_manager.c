@@ -47,6 +47,7 @@ static void m_map_merge_free_blocks(block_meta_data_t *first, block_meta_data_t 
 
     first->block_size += sizeof(block_meta_data_t) + second->block_size;
 
+    first->p_next_block = second->p_next_block;
     if(second->p_next_block) {
         second->p_next_block->p_prev_block = first;
     }
@@ -402,7 +403,7 @@ static block_meta_data_t *m_map_free_block(block_meta_data_t *block_to_free)
     }
 
     if (m_map_is_vm_page_empty(host_page)) {
-        m_map_return_vm_page_to_kernel(host_page);
+        deallocate_vm_page(host_page);
         return NULL;
     }
     
@@ -415,7 +416,7 @@ void my_free(void *app_data)
 {
     // block_meta_data_t *block_meta_data = (block_meta_data_t *)((char *)app_data - sizeof(block_meta_data_t));
     block_meta_data_t *block_meta_data = (block_meta_data_t *)((char *)app_data - sizeof(block_meta_data_t));
-    printf("my free called\n");
+
     assert(block_meta_data->is_free == MM_FALSE);
     m_map_free_block(block_meta_data);
 }
