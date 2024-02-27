@@ -1,4 +1,5 @@
 CC=gcc
+DB=gdb
 CFLAGS=-g
 BUILD_DIR=build/
 BIN_DIR=bin/
@@ -27,11 +28,12 @@ ${BUILD_DIR}glthread.o:gluethread/glthread.c
 $(BUILD_DIRS):
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
+
 clean:
 	rm -rf build bin
 
-debug:
-	gdb ./bin/test_app
+debug: $(BUILD_DIRS) test_app
+	${DB} ./bin/test_app
 
-run:
+run: $(BUILD_DIRS) test_app
 	./bin/test_app
